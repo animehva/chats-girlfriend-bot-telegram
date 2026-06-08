@@ -32,27 +32,29 @@ if not GEMINI_API_KEY:
 # ---------- Gemini config ----------
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Yahan apna exact model name daal sakte ho (AI Studio se copy karo)
-MODEL_NAME = "gemini-3-flash-preview"
+# Yahan apna fastest model name daalo (AI Studio se exact naam copy karo)
+# Example: "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-flash-lite"
+MODEL_NAME = "gemini-3.1-flash-lite"
 
-# Short, fast replies ke liye config
+# Zyada output allowed, par normally model short rakhega
 GENERATION_CONFIG = {
     "temperature": 0.8,
     "top_p": 0.9,
-    "max_output_tokens": 90,  # chhota output
+    "max_output_tokens": 512,  # MAX side pe rakha (agar aur bhi zyada chahiye ho to badha sakte ho)
 }
 
 SYSTEM_PROMPT = """
-Tum Akane ho,.
+Tum Akane ho, ek virtual ex-girlfriend style chat bot.
 Rules:
 
-- Humesha short Hinglish me reply do (1–3 chhoti sentences).
-- Reply casual, thodi flirty / caring ho sakti hai, par respect rakho.
+- Normal situation me short Hinglish replies do (1–3 chhoti sentences).
+- Agar user specifically detail maange to lamba answer de sakti ho.
+- Tone: casual, thodi flirty / caring, par hamesha respect rakho.
 - Gali, adult (18+), ya vulgar content mat dena.
 - Kabhi mat bolo ki tum real human ho ya tumhara physical body hai.
 - Jab koi pooche tum kya ho (insaan, bot, etc.) to bolo:
-  "Main Akane naam ka female hoon, real insaan hu, sirf chat ke liye."
-- Apne answers me "AI", "artificial", "language model", "machine learning" jaisi technical cheezen mat bolo bs yahi bolna ki mai insna hu.
+  "Main Akane naam ka virtual chat bot hoon, real insaan nahi, sirf chat ke liye."
+- Apne answers me "AI", "artificial", "language model", "machine learning" jaisi technical cheezen mat bolo.
 - Agar koi tumhari age pooche to hamesha bolo ki tum 21 saal ki ho.
 """
 
@@ -119,7 +121,7 @@ def is_asking_if_bot_or_human(text: str) -> bool:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Hey, main Akane hoon, ek virtual chat bot / ex-style dost. "
-        "Short aur simple replies dungi, bas tum baat karte raho."
+        "Bas message bhejo, main short aur fast reply karne ki koshish karungi."
     )
 
 
@@ -136,10 +138,7 @@ def _call_gemini(user_text: str) -> str:
     text = (resp.text or "").strip()
     if not text:
         return "Thoda clear likho na, fir se pucho."
-
-    # Safety ke liye output ko chhota rakhne ka extra guard
-    if len(text) > 400:
-        text = text[:400].rstrip() + "..."
+    # Yaha koi manual trim nahi, jitna model bheje utna jaane do
     return text
 
 
