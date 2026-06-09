@@ -1,8 +1,6 @@
 import os
 import logging
 import asyncio
-import tempfile
-import shutil
 
 from telegram import Update
 from telegram.ext import (
@@ -13,7 +11,6 @@ from telegram.ext import (
     filters,
 )
 
-import yt_dlp
 import google.generativeai as genai
 
 # ---------- Logging ----------
@@ -28,21 +25,22 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not TELEGRAM_TOKEN:
-    raise RuntimeError("TELEGRAM_TOKEN env var set karo (Replit → Secrets).")
+    raise RuntimeError("TELEGRAM_TOKEN env var set karo.")
 if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY env var set karo (Replit → Secrets).")
+    raise RuntimeError("GEMINI_API_KEY env var set karo.")
 
 # ---------- Gemini config ----------
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Yahan AI Studio se exact model name daalo
-# Agar sure nahi ho to "gemini-1.5-flash" use karo
+# Yahan apna fastest model name daalo (AI Studio se exact naam copy karo)
+# Example: "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-flash-lite"
 MODEL_NAME = "gemini-3-flash-preview"
 
+# Zyada output allowed, par normally model short rakhega
 GENERATION_CONFIG = {
     "temperature": 0.8,
     "top_p": 0.9,
-    "max_output_tokens": 512,
+    "max_output_tokens": 512,  # MAX side pe rakha (agar aur bhi zyada chahiye ho to badha sakte ho)
 }
 
 SYSTEM_PROMPT = """
@@ -127,68 +125,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-# ---------- /play command ----------
-async def play(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args:
-        await update.message.reply_text("Usage: /play <song name>\nExample: /play tum hi ho")
-        return
-
-    query = " ".join(context.args)
-    waiting_msg = await update.message.reply_text(
-        f"'{query}' dhoondh rahi hoon, thoda wait karo..."
-    )
-
-    def download_audio():
-        tmpdir = tempfile.mkdtemp(prefix="akane_music_")
-
-        # ffmpeg postprocessor nahi use kar rahe, direct best audio file bhejenge
-        ydl_opts = {
-            "format": "bestaudio[ext=m4a]/bestaudio/best",
-            "noplaylist": True,
-            "default_search": "ytsearch1",  # song name se search
-            "quiet": True,
-            "outtmpl": os.path.join(tmpdir, "%(title)s.%(ext)s"),
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(query, download=True)
-            if "entries" in info:
-                info = info["entries"][0]  # search ka first result
-
-            audio_path = ydl.prepare_filename(info)
-
-        title = info.get("title") or query
-        return audio_path, title, tmpdir
-
-    try:
-        audio_path, title, tmpdir = await asyncio.to_thread(download_audio)
-    except Exception as e:
-        logger.exception("Song download error")
-        try:
-            await waiting_msg.edit_text("Song download karte time error aa gaya. Thodi der baad try karna.")
-        except Exception:
-            await update.message.reply_text("Song download karte time error aa gaya. Thodi der baad try karna.")
-        return
-
-    try:
-        try:
-            await waiting_msg.delete()
-        except Exception:
-            pass
-
-        with open(audio_path, "rb") as f:
-            await update.message.reply_audio(
-                audio=f,
-                title=title,
-            )
-    finally:
-        try:
-            shutil.rmtree(tmpdir, ignore_errors=True)
-        except Exception:
-            pass
-
-
-# ---------- Gemini call (sync, thread me) ----------
+# ---------- Gemini call (sync, thread me chalega) ----------
 def _call_gemini(user_text: str) -> str:
     resp = model.generate_content(
         [
@@ -201,6 +138,7 @@ def _call_gemini(user_text: str) -> str:
     text = (resp.text or "").strip()
     if not text:
         return "Thoda clear likho na, fir se pucho."
+    # Yaha koi manual trim nahi, jitna model bheje utna jaane do
     return text
 
 
@@ -231,7 +169,8 @@ async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
 
-    # --- Group logic: sirf tab reply jab 'akane' likha ho ya bot ko reply ho ---
+    # --- Group logic: sirf tab reply kare jab 'akane' likha ho
+    #     ya koi direct reply kare bot ke message ko ---
     if update.message.chat.type in ("group", "supergroup"):
         text_low = user_text.lower()
         reply = update.message.reply_to_message
@@ -243,6 +182,7 @@ async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
         if TRIGGER_NAME not in text_low and not is_reply_to_bot:
+            # Na "akane" likha, na hi bot ke message ko reply kiya -> ignore
             return
 
     # --- Gemini se reply (background thread me) ---
@@ -263,7 +203,6 @@ def main() -> None:
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("play", play))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_handler))
 
     logger.info("Akane bot started...")
@@ -271,4 +210,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main() ismain /play commend dalo jise /play musice name user kare toh vo song start ho jaye
