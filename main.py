@@ -37,7 +37,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Yahan apna fastest model name daalo (AI Studio se exact naam copy karo)
 # Example: "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-flash-lite"
-MODEL_NAME = "gemini-3.1-flash-lite"  # agar ye exist na kare to sahi naam daal dena
+MODEL_NAME = "gemini-3-flash-preview"  # agar ye exist na kare to sahi naam daal dena
 
 # Zyada output allowed, par normally model short rakhega
 GENERATION_CONFIG = {
