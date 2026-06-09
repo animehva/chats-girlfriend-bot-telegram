@@ -210,4 +210,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() ismain /play commend dalo jise /play musice name user kare toh vo song start ho jaye
+    main()
