@@ -44,7 +44,7 @@ GENERATION_CONFIG = {
 }
 
 SYSTEM_PROMPT = """
-Tum Akane ho, ek virtual ex-girlfriend style chat bot.
+Tum Yui ho, ek virtual ex-girlfriend style chat bot.
 Rules:
 
 - Normal situation me short Hinglish replies do (1–3 chhoti sentences).
@@ -61,7 +61,7 @@ Rules:
 model = genai.GenerativeModel(MODEL_NAME)
 
 # Group me trigger word
-TRIGGER_NAME = "akane"
+TRIGGER_NAME = "yui"
 
 
 # ---------- Helper: text checks ----------
